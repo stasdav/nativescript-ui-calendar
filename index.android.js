@@ -30,7 +30,10 @@ function isCustomNonWorkingDay(date) {
             }
         }
 
-        const ymd = jsDate.toISOString().slice(0, 10);
+        const year = jsDate.getFullYear();
+        const month = String(jsDate.getMonth() + 1).padStart(2, '0');
+        const day = String(jsDate.getDate()).padStart(2, '0');
+        const ymd = `${year}-${month}-${day}`;
 
         if (_customNonWorkingDaysConfig.days_off?.includes(ymd)) return true;
         if (_customNonWorkingDaysConfig.holidays?.includes(ymd)) return true;

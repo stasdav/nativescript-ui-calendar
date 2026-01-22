@@ -4,6 +4,7 @@
 - [Installation](#installation)
 - [Documentation](#documentation)
 - [API Reference](#api-reference)
+- [Custom Non-Working Days (iOS)](#custom-non-working-days-ios)
 - [Sample Apps](#sample-apps)
 - [Release Notes](#release-notes)
 - [Get Help](#get-help)
@@ -37,6 +38,41 @@ More information about the plugin features is available in the Guides for:
 ## API Reference
 
 [Here](https://docs.nativescript.org/ns-ui-api-reference/classes/radcalendar) is the API Reference section.
+
+## Custom Non-Working Days (iOS)
+
+This fork adds support for custom non-working days in month view. Non-working days are styled using `weekendCellStyle`.
+
+### Usage
+
+```javascript
+import { setCustomNonWorkingDays } from 'nativescript-ui-calendar';
+
+// Set custom non-working days
+setCustomNonWorkingDays({
+    iso_weekday_ids: [1, 2, 3, 4, 5], // Working days (0=Sun, 1=Mon, ..., 6=Sat)
+    days_off: ['2026-01-23', '2026-01-24'], // Specific days off (YYYY-MM-DD)
+    holidays: ['2026-01-01', '2026-05-01'] // Holidays (YYYY-MM-DD)
+});
+
+// Reset to system weekend
+setCustomNonWorkingDays(null);
+```
+
+### Configuration
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `iso_weekday_ids` | `number[]` | Array of working weekday numbers (0=Sunday, 6=Saturday) |
+| `days_off` | `string[]` | Array of specific non-working dates in `YYYY-MM-DD` format |
+| `holidays` | `string[]` | Array of holiday dates in `YYYY-MM-DD` format |
+
+### Behavior
+
+- When config is set, custom logic **replaces** system weekend detection
+- Days not in `iso_weekday_ids` are marked as non-working
+- Dates in `days_off` or `holidays` are marked as non-working
+- Style is applied via `weekendCellStyle`
 
 ## Sample Apps
 

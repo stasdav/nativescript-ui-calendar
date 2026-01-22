@@ -1,6 +1,43 @@
 import { Color, ObservableArray, Utils } from '@nativescript/core';
 import * as commonModule from './common';
 export * from './common';
+
+// Custom non-working days configuration
+let _customNonWorkingDaysConfig = null;
+
+export function setCustomNonWorkingDays(config) {
+    _customNonWorkingDaysConfig = config;
+}
+
+function isCustomNonWorkingDay(date) {
+    try {
+        if (!_customNonWorkingDaysConfig || !date) return false;
+
+        // NSDate → JS Date
+        let jsDate = date;
+        if (date.getTime === undefined && date.timeIntervalSince1970) {
+            jsDate = new Date(date.timeIntervalSince1970() * 1000);
+        }
+
+        const weekday = jsDate.getDay(); // 0=Sun ... 6=Sat
+
+        // Check working days of week
+        if (_customNonWorkingDaysConfig.iso_weekday_ids) {
+            if (!_customNonWorkingDaysConfig.iso_weekday_ids.includes(weekday)) {
+                return true;
+            }
+        }
+
+        const ymd = jsDate.toISOString().slice(0, 10);
+
+        if (_customNonWorkingDaysConfig.days_off?.includes(ymd)) return true;
+        if (_customNonWorkingDaysConfig.holidays?.includes(ymd)) return true;
+
+        return false;
+    } catch (e) {
+        return false;
+    }
+}
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 export class CalendarEvent extends commonModule.CalendarEvent {
     get ios() {
@@ -1475,7 +1512,14 @@ var TKCalendarNativeDelegateImplementation = /** @class */ (function (_super) {
         if (viewModeStyle.selectedDayCellStyle && (cell.state & TKCalendarDayState.Selected || cell.state & TKCalendarDayState.MidInSelection || cell.state & TKCalendarDayState.FirstInSelection || cell.state & TKCalendarDayState.LastInSelection)) {
             dayCellStyle = viewModeStyle.selectedDayCellStyle;
         }
-        else if (cell.state & TKCalendarDayState.Weekend && viewModeStyle.weekendCellStyle) {
+        else if (
+            viewModeStyle.weekendCellStyle &&
+            (
+                _customNonWorkingDaysConfig
+                    ? isCustomNonWorkingDay(cell.date)
+                    : (cell.state & TKCalendarDayState.Weekend)
+            )
+        ) {
             dayCellStyle = viewModeStyle.weekendCellStyle;
         }
         else if (cell.state & TKCalendarDayState.Today && viewModeStyle.todayCellStyle) {

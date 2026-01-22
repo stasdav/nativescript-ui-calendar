@@ -270,6 +270,10 @@ export class CalendarMonthViewStyle extends ViewBase {
         this.onWeekendCellStyleChanged(oldValue, newValue);
     }
     onWeekendCellStyleChanged(oldValue, newValue) { }
+    onWeekendAnotherMonthCellStylePropertyChanged(oldValue, newValue) {
+        this.onWeekendAnotherMonthCellStyleChanged(oldValue, newValue);
+    }
+    onWeekendAnotherMonthCellStyleChanged(oldValue, newValue) { }
     onTitleCellStylePropertyChanged(oldValue, newValue) {
         this.onTitleCellStyleChanged(oldValue, newValue);
     }
@@ -393,6 +397,13 @@ CalendarMonthViewStyle.weekendCellStyleProperty = new Property({
         target.onWeekendCellStylePropertyChanged(oldValue, newValue);
     }
 });
+CalendarMonthViewStyle.weekendAnotherMonthCellStyleProperty = new Property({
+    name: 'weekendAnotherMonthCellStyle',
+    defaultValue: undefined,
+    valueChanged: (target, oldValue, newValue) => {
+        target.onWeekendAnotherMonthCellStylePropertyChanged(oldValue, newValue);
+    }
+});
 CalendarMonthViewStyle.titleCellStyleProperty = new Property({
     name: 'titleCellStyle',
     defaultValue: undefined,
@@ -420,6 +431,7 @@ CalendarMonthViewStyle.todayCellStyleProperty.register(CalendarMonthViewStyle);
 CalendarMonthViewStyle.dayNameCellStyleProperty.register(CalendarMonthViewStyle);
 CalendarMonthViewStyle.weekNumberCellStyleProperty.register(CalendarMonthViewStyle);
 CalendarMonthViewStyle.weekendCellStyleProperty.register(CalendarMonthViewStyle);
+CalendarMonthViewStyle.weekendAnotherMonthCellStyleProperty.register(CalendarMonthViewStyle);
 CalendarMonthViewStyle.titleCellStyleProperty.register(CalendarMonthViewStyle);
 CalendarMonthViewStyle.inlineEventCellStyleProperty.register(CalendarMonthViewStyle);
 //////////////////////////////////////////////////////////////////////////////////////////////

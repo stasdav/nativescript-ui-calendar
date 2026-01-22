@@ -1,5 +1,46 @@
 import { Color, Utils, Application, ObservableArray, Enums } from '@nativescript/core';
 import * as commonModule from './common';
+
+// Custom non-working days configuration (API compatibility with iOS)
+// Note: On Android, weekend detection is handled natively and custom non-working days
+// require native code modifications. This API is provided for code compatibility.
+let _customNonWorkingDaysConfig = null;
+
+export function setCustomNonWorkingDays(config) {
+    _customNonWorkingDaysConfig = config;
+    // Note: On Android, this configuration is not used for weekend styling
+    // as the native component handles weekend detection internally.
+    // To fully support custom non-working days on Android, native code changes are required.
+}
+
+function isCustomNonWorkingDay(date) {
+    try {
+        if (!_customNonWorkingDaysConfig || !date) return false;
+
+        let jsDate = date;
+        if (typeof date === 'number') {
+            jsDate = new Date(date);
+        }
+
+        const weekday = jsDate.getDay(); // 0=Sun ... 6=Sat
+
+        if (_customNonWorkingDaysConfig.iso_weekday_ids) {
+            if (!_customNonWorkingDaysConfig.iso_weekday_ids.includes(weekday)) {
+                return true;
+            }
+        }
+
+        const ymd = jsDate.toISOString().slice(0, 10);
+
+        if (_customNonWorkingDaysConfig.days_off?.includes(ymd)) return true;
+        if (_customNonWorkingDaysConfig.holidays?.includes(ymd)) return true;
+
+        return false;
+    } catch (e) {
+        return false;
+    }
+}
+
 function getSdkApiLevel() {
     return android.os.Build.VERSION.SDK_INT;
 }
@@ -1116,6 +1157,10 @@ export class CalendarMonthViewStyle extends commonModule.CalendarMonthViewStyle 
     onWeekendCellStyleChanged(oldValue, newValue) {
         this.initializer.onWeekendCellStyleChanged(oldValue, newValue, this);
     }
+    onWeekendAnotherMonthCellStyleChanged(oldValue, newValue) {
+        // Note: weekendAnotherMonthCellStyle is iOS-only as Android doesn't support anotherMonthCellStyle
+        // This handler is provided for API compatibility
+    }
     onDayNameCellStyleChanged(oldValue, newValue) {
         this.initializer.onDayNameCellStyleChanged(oldValue, newValue, this);
     }
@@ -1216,6 +1261,10 @@ export class CalendarDayViewStyle extends commonModule.CalendarDayViewStyle {
     }
     onWeekendCellStyleChanged(oldValue, newValue) {
         this.initializer.onWeekendCellStyleChanged(oldValue, newValue, this);
+    }
+    onWeekendAnotherMonthCellStyleChanged(oldValue, newValue) {
+        // Note: weekendAnotherMonthCellStyle is iOS-only as Android doesn't support anotherMonthCellStyle
+        // This handler is provided for API compatibility
     }
     onDayNameCellStyleChanged(oldValue, newValue) {
         this.initializer.onDayNameCellStyleChanged(oldValue, newValue, this);

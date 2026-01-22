@@ -4,7 +4,8 @@
 - [Installation](#installation)
 - [Documentation](#documentation)
 - [API Reference](#api-reference)
-- [Custom Non-Working Days (iOS)](#custom-non-working-days-ios)
+- [Custom Non-Working Days](#custom-non-working-days)
+- [Weekend + Another Month Style (iOS)](#weekend--another-month-style-ios)
 - [Sample Apps](#sample-apps)
 - [Release Notes](#release-notes)
 - [Get Help](#get-help)
@@ -39,9 +40,18 @@ More information about the plugin features is available in the Guides for:
 
 [Here](https://docs.nativescript.org/ns-ui-api-reference/classes/radcalendar) is the API Reference section.
 
-## Custom Non-Working Days (iOS)
+## Custom Non-Working Days
 
 This fork adds support for custom non-working days in month view. Non-working days are styled using `weekendCellStyle`.
+
+### Platform Support
+
+| Platform | Custom Non-Working Days | weekendAnotherMonthCellStyle |
+|----------|------------------------|------------------------------|
+| **iOS** | Full support | Full support |
+| **Android** | API available, but weekend detection is native | Not supported (anotherMonthCellStyle is iOS-only) |
+
+> **Note:** On Android, weekend detection is handled by the native calendar component. The `setCustomNonWorkingDays` API is provided for code compatibility, but custom non-working days styling requires native code modifications.
 
 ### Usage
 
@@ -73,6 +83,54 @@ setCustomNonWorkingDays(null);
 - Days not in `iso_weekday_ids` are marked as non-working
 - Dates in `days_off` or `holidays` are marked as non-working
 - Style is applied via `weekendCellStyle`
+
+## Weekend + Another Month Style (iOS)
+
+This fork adds `weekendAnotherMonthCellStyle` property to `CalendarMonthViewStyle` for styling cells that are **both** non-working days **and** belong to another month.
+
+### Problem
+
+When a day is both a weekend/non-working day and outside the current month, `weekendCellStyle` takes priority over `anotherMonthCellStyle`. This creates visual "islands" where days outside the month have different backgrounds depending on whether they are working days or not.
+
+### Solution
+
+Use `weekendAnotherMonthCellStyle` to style the intersection of these two conditions:
+
+```javascript
+import { CalendarMonthViewStyle, DayCellStyle } from 'nativescript-ui-calendar';
+
+const monthViewStyle = new CalendarMonthViewStyle();
+
+// Style for weekend/non-working days in current month
+const weekendStyle = new DayCellStyle();
+weekendStyle.cellBackgroundColor = new Color('#8c8c8c');
+
+// Style for regular days in another month
+const anotherMonthStyle = new DayCellStyle();
+anotherMonthStyle.cellBackgroundColor = new Color('#f0f0f0');
+anotherMonthStyle.cellTextColor = new Color('#999999');
+
+// Style for weekend/non-working days in another month (NEW)
+const weekendAnotherMonthStyle = new DayCellStyle();
+weekendAnotherMonthStyle.cellBackgroundColor = new Color('#f0f0f0');
+weekendAnotherMonthStyle.cellTextColor = new Color('#8c8c8c');
+
+monthViewStyle.weekendCellStyle = weekendStyle;
+monthViewStyle.anotherMonthCellStyle = anotherMonthStyle;
+monthViewStyle.weekendAnotherMonthCellStyle = weekendAnotherMonthStyle;
+```
+
+### Style Priority
+
+Styles are applied in the following order (highest priority first):
+
+1. `selectedDayCellStyle` - selected cells
+2. `weekendAnotherMonthCellStyle` - weekend/non-working + another month **(NEW)**
+3. `weekendCellStyle` - weekend/non-working days
+4. `todayCellStyle` - today's date
+5. `disabledCellStyle` - disabled dates
+6. `anotherMonthCellStyle` - days outside current month
+7. `dayCellStyle` - regular days
 
 ## Sample Apps
 

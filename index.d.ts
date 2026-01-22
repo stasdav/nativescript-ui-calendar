@@ -579,6 +579,17 @@ export class CalendarMonthViewStyle extends ViewBase {
 	weekendCellStyle: CellStyle;
 
 	/**
+	 * Identifies the {@link weekendAnotherMonthCellStyle} dependency property.
+	 */
+	static weekendAnotherMonthCellStyleProperty: Property<CalendarMonthViewStyle, CellStyle>;
+	/**
+	 * Gets or sets the instance of {@link CellStyle} with properties used for styling of cells
+	 * that are both weekend/non-working days AND belong to another month.
+	 * Available only in iOS.
+	 */
+	weekendAnotherMonthCellStyle: CellStyle;
+
+	/**
 	 * Identifies the {@link titleCellStyle} dependency property.
 	 */
 	static titleCellStyleProperty: Property<CalendarMonthViewStyle, CellStyle>;
@@ -1396,3 +1407,35 @@ export class RadCalendar extends View {
 	 */
 	clearSelection(): void;
 }
+
+/**
+ * Configuration for custom non-working days.
+ */
+export interface CustomNonWorkingDaysConfig {
+	/**
+	 * Array of working weekday numbers (0=Sunday, 1=Monday, ..., 6=Saturday).
+	 * Days not in this array are considered non-working.
+	 */
+	iso_weekday_ids?: number[];
+
+	/**
+	 * Array of specific non-working dates in YYYY-MM-DD format.
+	 */
+	days_off?: string[];
+
+	/**
+	 * Array of holiday dates in YYYY-MM-DD format.
+	 */
+	holidays?: string[];
+}
+
+/**
+ * Sets custom non-working days configuration for the calendar.
+ * When set, custom logic replaces system weekend detection.
+ *
+ * Note: On Android, weekend detection is handled natively and this configuration
+ * has limited effect. Full support is available on iOS only.
+ *
+ * @param config The configuration object, or null to reset to system weekend.
+ */
+export function setCustomNonWorkingDays(config: CustomNonWorkingDaysConfig | null): void;

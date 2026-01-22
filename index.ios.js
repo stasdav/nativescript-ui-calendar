@@ -662,6 +662,9 @@ export class CalendarMonthViewStyle extends commonModule.CalendarMonthViewStyle 
     onWeekendCellStyleChanged(oldValue, newValue) {
         this.updateOwner();
     }
+    onWeekendAnotherMonthCellStyleChanged(oldValue, newValue) {
+        this.updateOwner();
+    }
     onDayNameCellStyleChanged(oldValue, newValue) {
         this.updateOwner();
     }
@@ -1511,6 +1514,17 @@ var TKCalendarNativeDelegateImplementation = /** @class */ (function (_super) {
         var dayCellStyle = null;
         if (viewModeStyle.selectedDayCellStyle && (cell.state & TKCalendarDayState.Selected || cell.state & TKCalendarDayState.MidInSelection || cell.state & TKCalendarDayState.FirstInSelection || cell.state & TKCalendarDayState.LastInSelection)) {
             dayCellStyle = viewModeStyle.selectedDayCellStyle;
+        }
+        else if (
+            viewModeStyle.weekendAnotherMonthCellStyle &&
+            !(cell.state & TKCalendarDayState.CurrentMonth) &&
+            (
+                _customNonWorkingDaysConfig
+                    ? isCustomNonWorkingDay(cell.date)
+                    : (cell.state & TKCalendarDayState.Weekend)
+            )
+        ) {
+            dayCellStyle = viewModeStyle.weekendAnotherMonthCellStyle;
         }
         else if (
             viewModeStyle.weekendCellStyle &&

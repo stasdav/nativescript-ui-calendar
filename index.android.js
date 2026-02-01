@@ -1654,12 +1654,12 @@ function initializeListeners() {
         return global.__native(_this);
     }
     CalendarCustomizationRuleImpl.prototype.apply = function (cell) {
-        if (!this.owner || !_customNonWorkingDaysConfig) {
-            console.log('CustomizationRule.apply: skipping, owner=' + !!this.owner + ', config=' + !!_customNonWorkingDaysConfig);
-            return;
-        }
+        if (!this.owner || !_customNonWorkingDaysConfig) return;
         if (cell.getCellType() !== com.telerik.widget.calendar.CalendarCellType.Date) return;
         try {
+            var dateVal = cell.getDate();
+            // Skip cells with no date (uninitialized during layout)
+            if (!dateVal || dateVal === 0) return;
             this.owner._applyCustomNonWorkingDayStyle(cell);
         } catch (e) {
             console.log('CustomizationRule.apply error: ' + e);
@@ -2170,6 +2170,17 @@ export class RadCalendar extends commonModule.RadCalendar {
     onViewModeChanged(oldValue, newValue) {
         if (this._nativeView) {
             this.setNativeViewMode(newValue);
+            // Re-apply customization rule after mode change —
+            // changeDisplayMode() may reset internal rendering state
+            if (_customNonWorkingDaysConfig) {
+                this._setupCustomizationRule();
+                // Delayed invalidate to ensure mode switch is complete before redraw
+                setTimeout(() => {
+                    if (this._nativeView) {
+                        this._nativeView.invalidate();
+                    }
+                }, 100);
+            }
         }
         this._syncSelectionShape();
     }

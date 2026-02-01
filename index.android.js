@@ -1947,7 +1947,20 @@ export class RadCalendar extends commonModule.RadCalendar {
     }
     _applyCustomNonWorkingDayStyle(cell) {
         var cellDate = new Date(cell.getDate());
+
+        // Skip selected cells — selected style has highest priority (matches iOS)
+        try {
+            if (cell.isSelected()) return;
+        } catch (e) { /* isSelected may not exist */ }
+
         var isNonWorking = isCustomNonWorkingDay(cellDate);
+
+        // Skip today if it's a working day — let native today style win
+        var today = new Date();
+        var isTodayCell = cellDate.getDate() === today.getDate()
+            && cellDate.getMonth() === today.getMonth()
+            && cellDate.getFullYear() === today.getFullYear();
+        if (isTodayCell && !isNonWorking) return;
 
         // Determine if cell is from current month
         var displayDate = new Date(this._nativeView.getDisplayDate());
@@ -1970,17 +1983,18 @@ export class RadCalendar extends commonModule.RadCalendar {
                 this._applyCellStyleProperties(cell, style);
             }
         } else {
-            // Working day — apply regular day style to ALL working days.
-            // This overrides any native adapter-level weekend styling
-            // (the native calendar always treats Sat/Sun as weekends internally).
-            var style = null;
-            if (!isCurrentMonth && viewStyle.anotherMonthCellStyle) {
-                style = viewStyle.anotherMonthCellStyle;
-            } else if (viewStyle.dayCellStyle) {
-                style = viewStyle.dayCellStyle;
-            }
-            if (style) {
-                this._applyCellStyleProperties(cell, style);
+            // Working day — undo native weekend styling for Sat/Sun
+            var dow = cellDate.getDay();
+            if (dow === 0 || dow === 6) {
+                var style = null;
+                if (!isCurrentMonth && viewStyle.anotherMonthCellStyle) {
+                    style = viewStyle.anotherMonthCellStyle;
+                } else if (viewStyle.dayCellStyle) {
+                    style = viewStyle.dayCellStyle;
+                }
+                if (style) {
+                    this._applyCellStyleProperties(cell, style);
+                }
             }
         }
     }

@@ -909,7 +909,7 @@ export class CalendarStyleInitializer {
             style.prepareNativeStyle(style.dayCellStyle, CellStyleType.RegularDayStyle);
             style._owner._nativeView.addDayCellStyle(style.dayCellStyle.android);
         }
-        if (style.weekendCellStyle) {
+        if (style.weekendCellStyle && !_customNonWorkingDaysConfig) {
             style.prepareNativeStyle(style.weekendCellStyle, CellStyleType.WeekendStyle);
             style._owner._nativeView.addDayCellStyle(style.weekendCellStyle.android);
         }
@@ -1035,14 +1035,13 @@ export class CalendarStyleInitializer {
     changeWeekendCellStyle(oldValue, newValue, style) {
         if (style._owner && style._owner._nativeView) {
             if (oldValue) {
-                // TODO: See if this was working as the removeDayCellStyle requires 'CalendarDayCellStyle'
                 style._owner._nativeView.removeDayCellStyle(oldValue.android);
             }
-            if (newValue) {
+            if (newValue && !_customNonWorkingDaysConfig) {
                 style.prepareNativeStyle(newValue, CellStyleType.WeekendStyle);
-                // TODO: See if this was working as the removeDayCellStyle requires 'CalendarDayCellStyle'
                 style._owner._nativeView.addDayCellStyle(newValue.android);
             }
+            style._owner._nativeView.invalidate();
         }
     }
     onDayNameCellStyleChanged(oldValue, newValue, style) {
@@ -1646,6 +1645,7 @@ function initializeListeners() {
         CalendarOnSelectedDatesChangedListener = CalendarOnSelectedDatesChangedListenerImpl;
     }
     if (!CalendarCustomizationRule) {
+        try {
         var CalendarCustomizationRuleImpl = /** @class */ (function (_super) {
     __extends(CalendarCustomizationRuleImpl, _super);
     function CalendarCustomizationRuleImpl(owner) {
@@ -1664,6 +1664,9 @@ function initializeListeners() {
     return CalendarCustomizationRuleImpl;
 }(java.lang.Object));
         CalendarCustomizationRule = CalendarCustomizationRuleImpl;
+        } catch (e) {
+            console.log('WARNING: CalendarCustomizationRule creation failed: ' + e);
+        }
     }
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1903,9 +1906,15 @@ export class RadCalendar extends commonModule.RadCalendar {
     // Custom non-working days support
     ///////////////////////////////////////////////////////////////////////////////////////////
     _setupCustomizationRule() {
-        if (this._nativeView) {
+        if (!this._nativeView || !CalendarCustomizationRule) {
+            console.log('WARNING: Cannot setup customization rule. nativeView=' + !!this._nativeView + ', CalendarCustomizationRule=' + !!CalendarCustomizationRule);
+            return;
+        }
+        try {
             this._nativeView._customizationRule = new CalendarCustomizationRule(this);
             this._nativeView.setCustomizationRule(this._nativeView._customizationRule);
+        } catch (e) {
+            console.log('WARNING: setCustomizationRule failed: ' + e);
         }
     }
     _getActiveMonthLikeStyle() {

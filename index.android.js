@@ -1654,9 +1654,16 @@ function initializeListeners() {
         return global.__native(_this);
     }
     CalendarCustomizationRuleImpl.prototype.apply = function (cell) {
-        if (!this.owner || !_customNonWorkingDaysConfig) return;
+        if (!this.owner || !_customNonWorkingDaysConfig) {
+            console.log('CustomizationRule.apply: skipping, owner=' + !!this.owner + ', config=' + !!_customNonWorkingDaysConfig);
+            return;
+        }
         if (cell.getCellType() !== com.telerik.widget.calendar.CalendarCellType.Date) return;
-        this.owner._applyCustomNonWorkingDayStyle(cell);
+        try {
+            this.owner._applyCustomNonWorkingDayStyle(cell);
+        } catch (e) {
+            console.log('CustomizationRule.apply error: ' + e);
+        }
     };
     CalendarCustomizationRuleImpl = __decorate([
         Interfaces([com.telerik.android.common.Procedure])
@@ -1932,6 +1939,11 @@ export class RadCalendar extends commonModule.RadCalendar {
         if (style.cellTextSize) {
             cell.setTextSize(style.cellTextSize * Utils.layout.getDisplayDensity());
         }
+        if (style.cellBorderColor) {
+            try {
+                cell.setBorderColor(new java.lang.Integer(style.cellBorderColor.argb));
+            } catch (e) { /* setBorderColor may not exist on CalendarCell */ }
+        }
     }
     _applyCustomNonWorkingDayStyle(cell) {
         var cellDate = new Date(cell.getDate());
@@ -1958,18 +1970,17 @@ export class RadCalendar extends commonModule.RadCalendar {
                 this._applyCellStyleProperties(cell, style);
             }
         } else {
-            // Working day — undo native weekend styling if Sat/Sun
-            var dow = cellDate.getDay();
-            if (dow === 0 || dow === 6) {
-                var style = null;
-                if (!isCurrentMonth && viewStyle.anotherMonthCellStyle) {
-                    style = viewStyle.anotherMonthCellStyle;
-                } else if (viewStyle.dayCellStyle) {
-                    style = viewStyle.dayCellStyle;
-                }
-                if (style) {
-                    this._applyCellStyleProperties(cell, style);
-                }
+            // Working day — apply regular day style to ALL working days.
+            // This overrides any native adapter-level weekend styling
+            // (the native calendar always treats Sat/Sun as weekends internally).
+            var style = null;
+            if (!isCurrentMonth && viewStyle.anotherMonthCellStyle) {
+                style = viewStyle.anotherMonthCellStyle;
+            } else if (viewStyle.dayCellStyle) {
+                style = viewStyle.dayCellStyle;
+            }
+            if (style) {
+                this._applyCellStyleProperties(cell, style);
             }
         }
     }

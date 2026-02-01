@@ -1658,7 +1658,6 @@ function initializeListeners() {
         if (cell.getCellType() !== com.telerik.widget.calendar.CalendarCellType.Date) return;
         try {
             var dateVal = cell.getDate();
-            // Skip cells with no date (uninitialized during layout)
             if (!dateVal || dateVal === 0) return;
             this.owner._applyCustomNonWorkingDayStyle(cell);
         } catch (e) {
@@ -1913,13 +1912,14 @@ export class RadCalendar extends commonModule.RadCalendar {
     // Custom non-working days support
     ///////////////////////////////////////////////////////////////////////////////////////////
     _setupCustomizationRule() {
+        console.log('DEBUG _setupCustomizationRule called. nativeView=' + !!this._nativeView + ', Rule=' + !!CalendarCustomizationRule + ', viewMode=' + this.viewMode);
         if (!this._nativeView || !CalendarCustomizationRule) {
-            console.log('WARNING: Cannot setup customization rule. nativeView=' + !!this._nativeView + ', CalendarCustomizationRule=' + !!CalendarCustomizationRule);
             return;
         }
         try {
             this._nativeView._customizationRule = new CalendarCustomizationRule(this);
             this._nativeView.setCustomizationRule(this._nativeView._customizationRule);
+            console.log('DEBUG _setupCustomizationRule SUCCESS');
         } catch (e) {
             console.log('WARNING: setCustomizationRule failed: ' + e);
         }
@@ -1947,12 +1947,6 @@ export class RadCalendar extends commonModule.RadCalendar {
     }
     _applyCustomNonWorkingDayStyle(cell) {
         var cellDate = new Date(cell.getDate());
-
-        // Skip selected cells — selected style has highest priority (matches iOS)
-        try {
-            if (cell.isSelected()) return;
-        } catch (e) { /* isSelected may not exist */ }
-
         var isNonWorking = isCustomNonWorkingDay(cellDate);
 
         // Skip today if it's a working day — let native today style win

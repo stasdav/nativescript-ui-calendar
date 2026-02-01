@@ -1,16 +1,11 @@
 import { Color, Utils, Application, ObservableArray, Enums } from '@nativescript/core';
 import * as commonModule from './common';
 
-// Custom non-working days configuration (API compatibility with iOS)
-// Note: On Android, weekend detection is handled natively and custom non-working days
-// require native code modifications. This API is provided for code compatibility.
+// Custom non-working days configuration
 let _customNonWorkingDaysConfig = null;
 
 export function setCustomNonWorkingDays(config) {
     _customNonWorkingDaysConfig = config;
-    // Note: On Android, this configuration is not used for weekend styling
-    // as the native component handles weekend detection internally.
-    // To fully support custom non-working days on Android, native code changes are required.
 }
 
 function isCustomNonWorkingDay(date) {
@@ -1161,8 +1156,9 @@ export class CalendarMonthViewStyle extends commonModule.CalendarMonthViewStyle 
         this.initializer.onWeekendCellStyleChanged(oldValue, newValue, this);
     }
     onWeekendAnotherMonthCellStyleChanged(oldValue, newValue) {
-        // Note: weekendAnotherMonthCellStyle is iOS-only as Android doesn't support anotherMonthCellStyle
-        // This handler is provided for API compatibility
+        if (this._owner && this._owner._nativeView) {
+            this._owner._nativeView.invalidate();
+        }
     }
     onDayNameCellStyleChanged(oldValue, newValue) {
         this.initializer.onDayNameCellStyleChanged(oldValue, newValue, this);
@@ -1266,8 +1262,9 @@ export class CalendarDayViewStyle extends commonModule.CalendarDayViewStyle {
         this.initializer.onWeekendCellStyleChanged(oldValue, newValue, this);
     }
     onWeekendAnotherMonthCellStyleChanged(oldValue, newValue) {
-        // Note: weekendAnotherMonthCellStyle is iOS-only as Android doesn't support anotherMonthCellStyle
-        // This handler is provided for API compatibility
+        if (this._owner && this._owner._nativeView) {
+            this._owner._nativeView.invalidate();
+        }
     }
     onDayNameCellStyleChanged(oldValue, newValue) {
         this.initializer.onDayNameCellStyleChanged(oldValue, newValue, this);
@@ -1445,6 +1442,7 @@ let CalendarOnDisplayDateChangedListener;
 let CalendarOnDisplayModeChangedListener;
 let CalendarEventViewTapListener;
 let CalendarOnSelectedDatesChangedListener;
+let CalendarCustomizationRule;
 function initializeListeners() {
     if (!CalendarCellClickListener) {
         var CalendarCellClickListenerImpl = /** @class */ (function (_super) {
@@ -1647,6 +1645,26 @@ function initializeListeners() {
 }(java.lang.Object));
         CalendarOnSelectedDatesChangedListener = CalendarOnSelectedDatesChangedListenerImpl;
     }
+    if (!CalendarCustomizationRule) {
+        var CalendarCustomizationRuleImpl = /** @class */ (function (_super) {
+    __extends(CalendarCustomizationRuleImpl, _super);
+    function CalendarCustomizationRuleImpl(owner) {
+        var _this = _super.call(this) || this;
+        _this.owner = owner;
+        return global.__native(_this);
+    }
+    CalendarCustomizationRuleImpl.prototype.apply = function (cell) {
+        if (!this.owner || !_customNonWorkingDaysConfig) return;
+        if (cell.getCellType() !== com.telerik.widget.calendar.CalendarCellType.Date) return;
+        this.owner._applyCustomNonWorkingDayStyle(cell);
+    };
+    CalendarCustomizationRuleImpl = __decorate([
+        Interfaces([com.telerik.android.common.Procedure])
+    ], CalendarCustomizationRuleImpl);
+    return CalendarCustomizationRuleImpl;
+}(java.lang.Object));
+        CalendarCustomizationRule = CalendarCustomizationRuleImpl;
+    }
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //                                              RadCalendar
@@ -1669,6 +1687,7 @@ export class RadCalendar extends commonModule.RadCalendar {
         this.addOnDisplayModeChangedListener();
         this.addOnSelectedDatesChangedListener();
         this.setDayViewEventSelectedListener();
+        this._setupCustomizationRule();
         // set initial property values using value changed handlers
         this.setNativeMinDate(this.minDate);
         this.setNativeMaxDate(this.maxDate);
@@ -1746,6 +1765,9 @@ export class RadCalendar extends commonModule.RadCalendar {
         }
         if (this._nativeView._onSelectedDatesChangedListener) {
             this._nativeView._onSelectedDatesChangedListener.owner = null;
+        }
+        if (this._nativeView._customizationRule) {
+            this._nativeView._customizationRule.owner = null;
         }
         super.disposeNativeView();
     }
@@ -1876,6 +1898,71 @@ export class RadCalendar extends commonModule.RadCalendar {
         this._forbidNativeSelection = true;
         this.selectedDateRange = firstSelected ? new commonModule.DateRange(firstSelected, lastSelected) : null;
         this._forbidNativeSelection = false;
+    }
+    ///////////////////////////////////////////////////////////////////////////////////////////
+    // Custom non-working days support
+    ///////////////////////////////////////////////////////////////////////////////////////////
+    _setupCustomizationRule() {
+        if (this._nativeView) {
+            this._nativeView._customizationRule = new CalendarCustomizationRule(this);
+            this._nativeView.setCustomizationRule(this._nativeView._customizationRule);
+        }
+    }
+    _getActiveMonthLikeStyle() {
+        if (this.viewMode === commonModule.CalendarViewMode.Week) return this.weekViewStyle;
+        if (this.viewMode === commonModule.CalendarViewMode.Day) return this.dayViewStyle;
+        return this.monthViewStyle;
+    }
+    _applyCellStyleProperties(cell, style) {
+        if (style.cellTextColor) {
+            cell.setTextColor(style.cellTextColor.android);
+        }
+        if (style.cellBackgroundColor) {
+            cell.setBackgroundColor(style.cellBackgroundColor.android);
+        }
+        if (style.cellTextSize) {
+            cell.setTextSize(style.cellTextSize * Utils.layout.getDisplayDensity());
+        }
+    }
+    _applyCustomNonWorkingDayStyle(cell) {
+        var cellDate = new Date(cell.getDate());
+        var isNonWorking = isCustomNonWorkingDay(cellDate);
+
+        // Determine if cell is from current month
+        var displayDate = new Date(this._nativeView.getDisplayDate());
+        var isCurrentMonth = cellDate.getMonth() === displayDate.getMonth()
+            && cellDate.getFullYear() === displayDate.getFullYear();
+
+        // Get active view style based on current view mode
+        var viewStyle = this._getActiveMonthLikeStyle();
+        if (!viewStyle) return;
+
+        if (isNonWorking) {
+            // Apply weekend/non-working day style
+            var style = null;
+            if (!isCurrentMonth && viewStyle.weekendAnotherMonthCellStyle) {
+                style = viewStyle.weekendAnotherMonthCellStyle;
+            } else if (viewStyle.weekendCellStyle) {
+                style = viewStyle.weekendCellStyle;
+            }
+            if (style) {
+                this._applyCellStyleProperties(cell, style);
+            }
+        } else {
+            // Working day — undo native weekend styling if Sat/Sun
+            var dow = cellDate.getDay();
+            if (dow === 0 || dow === 6) {
+                var style = null;
+                if (!isCurrentMonth && viewStyle.anotherMonthCellStyle) {
+                    style = viewStyle.anotherMonthCellStyle;
+                } else if (viewStyle.dayCellStyle) {
+                    style = viewStyle.dayCellStyle;
+                }
+                if (style) {
+                    this._applyCellStyleProperties(cell, style);
+                }
+            }
+        }
     }
     ///////////////////////////////////////////////////////////////////////////////////////////
     // NOTE: Since calendar is not created during xml parsing, we have setters for properties and call them from createUI & property changed handlers.
